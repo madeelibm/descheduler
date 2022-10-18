@@ -38,6 +38,7 @@ import (
 	listersv1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/events"
 	"k8s.io/utils/pointer"
+	utilpointer "k8s.io/utils/pointer"
 	"sigs.k8s.io/descheduler/cmd/descheduler/app/options"
 	"sigs.k8s.io/descheduler/pkg/api"
 	deschedulerapi "sigs.k8s.io/descheduler/pkg/api"
@@ -56,11 +57,11 @@ import (
 )
 
 func MakePodSpec(priorityClassName string, gracePeriod *int64) v1.PodSpec {
-	runAsUser := true
-	ape := false
 	return v1.PodSpec{
 		SecurityContext: &v1.PodSecurityContext{
-			RunAsNonRoot: &runAsUser,
+			RunAsNonRoot: utilpointer.Bool(true),
+			RunAsUser:    utilpointer.Int64(1000),
+			RunAsGroup:   utilpointer.Int64(1000),
 			SeccompProfile: &v1.SeccompProfile{
 				Type: v1.SeccompProfileTypeRuntimeDefault,
 			},
@@ -81,7 +82,7 @@ func MakePodSpec(priorityClassName string, gracePeriod *int64) v1.PodSpec {
 				},
 			},
 			SecurityContext: &v1.SecurityContext{
-				AllowPrivilegeEscalation: &ape,
+				AllowPrivilegeEscalation: utilpointer.Bool(false),
 				Capabilities: &v1.Capabilities{
 					Drop: []v1.Capability{
 						"ALL",
@@ -312,7 +313,6 @@ func TestLowNodeUtilization(t *testing.T) {
 
 	t.Log("Creating pods all bound to a single node")
 	for i := 0; i < 4; i++ {
-		runAsUser := true
 		pod := &v1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      fmt.Sprintf("lnu-pod-%v", i),
@@ -321,7 +321,9 @@ func TestLowNodeUtilization(t *testing.T) {
 			},
 			Spec: v1.PodSpec{
 				SecurityContext: &v1.PodSecurityContext{
-					RunAsNonRoot: &runAsUser,
+					RunAsNonRoot: utilpointer.Bool(true),
+					RunAsUser:    utilpointer.Int64(1000),
+					RunAsGroup:   utilpointer.Int64(1000),
 					SeccompProfile: &v1.SeccompProfile{
 						Type: v1.SeccompProfileTypeRuntimeDefault,
 					},
@@ -1302,7 +1304,6 @@ func createBalancedPodForNodes(
 		needCreateResource[v1.ResourceMemory] = *resource.NewQuantity(int64((ratio-memFraction)*float64(memAllocatableVal)+float64(crioMinMemLimit)), resource.BinarySI)
 
 		gracePeriod := int64(1)
-		runAsUser := true
 		// Don't set OwnerReferences to avoid pod eviction
 		pod := &v1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
@@ -1312,7 +1313,9 @@ func createBalancedPodForNodes(
 			},
 			Spec: v1.PodSpec{
 				SecurityContext: &v1.PodSecurityContext{
-					RunAsNonRoot: &runAsUser,
+					RunAsNonRoot: utilpointer.Bool(true),
+					RunAsUser:    utilpointer.Int64(1000),
+					RunAsGroup:   utilpointer.Int64(1000),
 					SeccompProfile: &v1.SeccompProfile{
 						Type: v1.SeccompProfileTypeRuntimeDefault,
 					},

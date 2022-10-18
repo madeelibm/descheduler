@@ -31,6 +31,7 @@ import (
 	"k8s.io/client-go/tools/events"
 	"k8s.io/utils/pointer"
 
+	utilpointer "k8s.io/utils/pointer"
 	"sigs.k8s.io/descheduler/pkg/descheduler/evictions"
 	eutils "sigs.k8s.io/descheduler/pkg/descheduler/evictions/utils"
 	"sigs.k8s.io/descheduler/pkg/framework"
@@ -40,8 +41,6 @@ import (
 )
 
 func TestTooManyRestarts(t *testing.T) {
-	runAsUser := true
-	ape := false
 	ctx := context.Background()
 
 	clientSet, sharedInformerFactory, _, getPodsAssignedToNode, stopCh := initializeClient(t)
@@ -78,7 +77,9 @@ func TestTooManyRestarts(t *testing.T) {
 				},
 				Spec: v1.PodSpec{
 					SecurityContext: &v1.PodSecurityContext{
-						RunAsNonRoot: &runAsUser,
+						RunAsNonRoot: utilpointer.Bool(true),
+						RunAsUser:    utilpointer.Int64(1000),
+						RunAsGroup:   utilpointer.Int64(1000),
 						SeccompProfile: &v1.SeccompProfile{
 							Type: v1.SeccompProfileTypeRuntimeDefault,
 						},
@@ -91,7 +92,7 @@ func TestTooManyRestarts(t *testing.T) {
 						Args:            []string{"-c", "sleep 1s && exit 1"},
 						Ports:           []v1.ContainerPort{{ContainerPort: 80}},
 						SecurityContext: &v1.SecurityContext{
-							AllowPrivilegeEscalation: &ape,
+							AllowPrivilegeEscalation: utilpointer.Bool(false),
 							Capabilities: &v1.Capabilities{
 								Drop: []v1.Capability{
 									"ALL",
